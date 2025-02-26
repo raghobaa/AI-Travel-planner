@@ -22,7 +22,7 @@ if st.button("Get Travel plan"):
             chat_template = ChatPromptTemplate(messages=[
                 ("system", """
                 You are an AI-powered travel assistant that provides users with the best travel options based on their preferences.
-                Given a source and destination, you must generate a structured travel plan with multiple options, including cab, train, bus, and flights.
+                Given a source and destination, you must provide the distance that needed to be travelled and you must generate a structured travel plan with multiple options, including cab, train, bus, and flights.
                 Each option should include the estimated cost, travel time, and any relevant details like stops or transfers.
                 Prioritize accuracy, cost-effectiveness, and convenience while presenting the results in a clear, easy-to-read format.
                 """),

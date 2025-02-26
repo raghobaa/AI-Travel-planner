@@ -16,9 +16,9 @@ The **AI-Powered Travel Planner** is a **Streamlit-based** application that help
 - **Google Generative AI** (`gemini-2.0-flash-exp` for travel recommendations)  
 
 ## Future Enhancements
-✅ Integration with real-time travel APIs for accurate fares
-✅ User preferences for budget-friendly or fastest routes
-✅ Multi-stop travel planning
+- Integration with real-time travel APIs for accurate fares
+- User preferences for budget-friendly or fastest routes
+- Multi-stop travel planning
 
 ## License
 This project is open-source. Feel free to modify and improve it! 

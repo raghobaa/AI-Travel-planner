@@ -15,7 +15,7 @@ source = st.text_input("Source:")
 destination = st.text_input("Destination:")
 
 
-if st.button("Get Travel Cost Estimate"):
+if st.button("Get Travel plan"):
     if source and destination:
         with st.spinner("Fetching travel options..."):
             # LangChain components

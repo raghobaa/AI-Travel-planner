@@ -3,6 +3,8 @@ import streamlit as st
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
+import os
+API_KEY = os.getenv("API_KEY") 
 
 # Streamlit UI 
 st.title("AI-Powered Travel Planner")
@@ -27,7 +29,7 @@ if st.button("Get Travel Cost Estimate"):
                 ("human", "Find travel options from {source} to {destination} with estimated costs.")
             ])
             
-            chat_model = ChatGoogleGenerativeAI(api_key="AIzaSyCHGvCV_UsrQLx8EZrb58IQ9qqQEyRNcYI", model="gemini-2.0-flash-exp")
+            chat_model = ChatGoogleGenerativeAI(api_key=API_KEY, model="gemini-2.0-flash-exp")
             parser = StrOutputParser()
             
             

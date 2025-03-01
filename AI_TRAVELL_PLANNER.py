@@ -1,7 +1,7 @@
 
 import streamlit as st
-import googlemaps
 import folium
+from geopy.geocoders import Nominatim
 from streamlit_folium import folium_static
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -10,8 +10,6 @@ from datetime import date
 import os
 API_KEY = os.getenv("API_KEY") 
 
-GMAPS_API_KEY = "AIzaSyCDhtBmRgD88X1VX8TTF30C9Iixc2fVpw0"
-gmaps = googlemaps.Client(key=GMAPS_API_KEY)
 
 
 
@@ -78,18 +76,18 @@ if st.button("Find Best Travel Options"):
             st.write("Here is a recommended itinerary based on your travel preferences:")
             st.write(response)  
             
-            # Fetch route from Google Maps
+           # Generate Map Using folium & geopy
+            geolocator = Nominatim(user_agent="geoapiExercises")
+            source_location = geolocator.geocode(source)
+            destination_location = geolocator.geocode(destination)
             
-            directions = gmaps.directions(source, destination, mode="driving")
-            if directions:
-                route_map = folium.Map(location=[directions[0]['legs'][0]['start_location']['lat'],
-                                                  directions[0]['legs'][0]['start_location']['lng']], zoom_start=10)
-                folium.Marker([directions[0]['legs'][0]['start_location']['lat'],
-                               directions[0]['legs'][0]['start_location']['lng']],
-                              popup=f"Start: {source}", icon=folium.Icon(color='green')).add_to(route_map)
-                folium.Marker([directions[0]['legs'][0]['end_location']['lat'],
-                               directions[0]['legs'][0]['end_location']['lng']],
-                              popup=f"End: {destination}", icon=folium.Icon(color='red')).add_to(route_map)
+            if source_location and destination_location:
+                route_map = folium.Map(location=[source_location.latitude, source_location.longitude], zoom_start=5)
+                folium.Marker([source_location.latitude, source_location.longitude], 
+                              popup=f"Source: {source}", icon=folium.Icon(color="green")).add_to(route_map)
+                folium.Marker([destination_location.latitude, destination_location.longitude], 
+                              popup=f"Destination: {destination}", icon=folium.Icon(color="red")).add_to(route_map)
+                
                 folium_static(route_map)
             else:
                 st.error("Could not fetch map directions.")

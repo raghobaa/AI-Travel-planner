@@ -76,20 +76,6 @@ if st.button("Find Best Travel Options"):
             st.write("Here is a recommended itinerary based on your travel preferences:")
             st.write(response)  
             
-           # Generate Map Using folium & geopy
-            geolocator = Nominatim(user_agent="geoapiExercises")
-            source_location = geolocator.geocode(source)
-            destination_location = geolocator.geocode(destination)
-            
-            if source_location and destination_location:
-                route_map = folium.Map(location=[source_location.latitude, source_location.longitude], zoom_start=5)
-                folium.Marker([source_location.latitude, source_location.longitude], 
-                              popup=f"Source: {source}", icon=folium.Icon(color="green")).add_to(route_map)
-                folium.Marker([destination_location.latitude, destination_location.longitude], 
-                              popup=f"Destination: {destination}", icon=folium.Icon(color="red")).add_to(route_map)
-                
-                folium_static(route_map)
-            else:
-                st.error("Could not fetch map directions.")
+         
     else:
         st.error("Please enter both source and destination cities.")

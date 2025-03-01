@@ -10,6 +10,9 @@ from datetime import date
 import os
 API_KEY = os.getenv("API_KEY") 
 
+GMAPS_API_KEY = "AIzaSyBDgm4rExLTe-FWKpit8qK8jdw1eJ63vTs"
+gmaps = googlemaps.Client(key=GMAPS_API_KEY)
+
 
 
 # Streamlit UI 
@@ -76,8 +79,7 @@ if st.button("Find Best Travel Options"):
             st.write(response)  
             
             # Fetch route from Google Maps
-            GMAPS_API_KEY = "AIzaSyBDgm4rExLTe-FWKpit8qK8jdw1eJ63vTs"
-            gmaps = googlemaps.Client(key=GMAPS_API_KEY)
+            
             directions = gmaps.directions(source, destination, mode="driving")
             if directions:
                 route_map = folium.Map(location=[directions[0]['legs'][0]['start_location']['lat'],

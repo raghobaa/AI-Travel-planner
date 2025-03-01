@@ -46,7 +46,7 @@ if st.button("Find Best Travel Options"):
                 ("human", "Find travel options from {source} to {destination} on {date_of_travel} with estimated costs in the range of ₹{price_min} to ₹{price_max}, considering {travel_mode} as a preferred mode. Also, suggest a travel itinerary.")
             ])
             
-            chat_model = ChatGoogleGenerativeAI(api_key="API_KEY", model="gemini-2.0-flash-exp")
+            chat_model = ChatGoogleGenerativeAI(api_key=API_KEY, model="gemini-2.0-flash-exp")
             parser = StrOutputParser()
             
             chain = chat_template | chat_model | parser

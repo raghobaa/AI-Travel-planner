@@ -10,7 +10,7 @@ from datetime import date
 import os
 API_KEY = os.getenv("API_KEY") 
 
-GMAPS_API_KEY = "AIzaSyAq11QwC0uNgC15RhsBpOzsgUvwRFfbZLc"
+GMAPS_API_KEY = "AIzaSyCDhtBmRgD88X1VX8TTF30C9Iixc2fVpw0"
 gmaps = googlemaps.Client(key=GMAPS_API_KEY)
 
 

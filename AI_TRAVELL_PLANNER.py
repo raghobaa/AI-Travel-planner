@@ -1,8 +1,8 @@
 
 import streamlit as st
-# import googlemaps
-# import folium
-# from streamlit_folium import folium_static
+import googlemaps
+import folium
+from streamlit_folium import folium_static
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
@@ -75,19 +75,21 @@ if st.button("Find Best Travel Options"):
             st.write("Here is a recommended itinerary based on your travel preferences:")
             st.write(response)  
             
-            # # Fetch route from Google Maps
-            # directions = gmaps.directions(source, destination, mode="driving")
-            # if directions:
-            #     route_map = folium.Map(location=[directions[0]['legs'][0]['start_location']['lat'],
-            #                                       directions[0]['legs'][0]['start_location']['lng']], zoom_start=10)
-            #     folium.Marker([directions[0]['legs'][0]['start_location']['lat'],
-            #                    directions[0]['legs'][0]['start_location']['lng']],
-            #                   popup=f"Start: {source}", icon=folium.Icon(color='green')).add_to(route_map)
-            #     folium.Marker([directions[0]['legs'][0]['end_location']['lat'],
-            #                    directions[0]['legs'][0]['end_location']['lng']],
-            #                   popup=f"End: {destination}", icon=folium.Icon(color='red')).add_to(route_map)
-            #     folium_static(route_map)
-            # else:
-            #     st.error("Could not fetch map directions.")
+            # Fetch route from Google Maps
+            GMAPS_API_KEY = "AIzaSyBDgm4rExLTe-FWKpit8qK8jdw1eJ63vTs"
+            gmaps = googlemaps.Client(key=GMAPS_API_KEY)
+            directions = gmaps.directions(source, destination, mode="driving")
+            if directions:
+                route_map = folium.Map(location=[directions[0]['legs'][0]['start_location']['lat'],
+                                                  directions[0]['legs'][0]['start_location']['lng']], zoom_start=10)
+                folium.Marker([directions[0]['legs'][0]['start_location']['lat'],
+                               directions[0]['legs'][0]['start_location']['lng']],
+                              popup=f"Start: {source}", icon=folium.Icon(color='green')).add_to(route_map)
+                folium.Marker([directions[0]['legs'][0]['end_location']['lat'],
+                               directions[0]['legs'][0]['end_location']['lng']],
+                              popup=f"End: {destination}", icon=folium.Icon(color='red')).add_to(route_map)
+                folium_static(route_map)
+            else:
+                st.error("Could not fetch map directions.")
     else:
         st.error("Please enter both source and destination cities.")

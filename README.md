@@ -20,5 +20,8 @@ The **AI-Powered Travel Planner** is a **Streamlit-based** application that help
 - User preferences for budget-friendly or fastest routes
 - Multi-stop travel planning
 
+## 🚀 Live Demo  
+🔗 [Click Here to Try the App at streamlit community cloud](https://ai-travel-planner-l2kgg9xfgirb7yj6bbvr72.streamlit.app/) 
+
 ## License
 This project is open-source. Feel free to modify and improve it! 

@@ -1,8 +1,5 @@
 
 import streamlit as st
-import folium
-from geopy.geocoders import Nominatim
-from streamlit_folium import folium_static
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
@@ -34,6 +31,16 @@ with col2:
 date_of_travel = st.date_input("Select Travel Date:", min_value=date.today())
 price_range = st.slider("Select Price Range (₹):", min_value=500, max_value=50000, value=(1000, 20000), step=500)
 travel_mode = st.selectbox("Preferred Travel Mode:", ["Any", "Flight", "Train", "Bus", "Cab"])
+
+# Google Maps Navigation Links
+def get_navigation_link(source, destination, mode):
+    mode_mapping = {"Flight": "d", "Train": "r", "Bus": "b", "Cab": "d"}
+    travel_mode = mode_mapping.get(mode, "d")
+    return f"https://www.google.com/maps/dir/?api=1&origin={source}&destination={destination}&travelmode={travel_mode}"
+
+# Google Maps Places API for Hotels & Restaurants
+def get_google_places_link(location, place_type):
+    return f"https://www.google.com/maps/search/{place_type}+near+{location}"
 
 if st.button("Find Best Travel Options"):
     if source and destination:
@@ -75,6 +82,38 @@ if st.button("Find Best Travel Options"):
             st.subheader("📅 Suggested Travel Details:")
             st.write("Here is a recommended itinerary based on your travel preferences:")
             st.write(response)  
+
+            # Navigation Links UI
+            st.subheader("Check below for Suggested navigations 📍:")
+           
+            nav_link = get_navigation_link(source, destination, travel_mode)
+            st.markdown(
+                    f"""
+                    <div style="border: 1px solid #ccc; padding: 15px; border-radius: 10px; margin-bottom: 10px; text-align: center; background-color: #f0f8ff; margin-top: 10px;">
+                        <a href="{nav_link}" target="_blank" style="text-decoration: none; color: black;">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/e/ec/Map_pin_icon.svg" width="20" />
+                            <b>click here to Navigation to {destination} via road </b>
+                        </a>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+              #Nearby Hotels, Restaurants & Top Attractions 
+           
+            
+            hotels_link = get_google_places_link(destination, "hotels")
+            restaurants_link = get_google_places_link(destination, "restaurants")
+            attractions_link = get_google_places_link(destination, "tourist attractions")
+            
+            for place, name in [(hotels_link, "Hotels"), (restaurants_link, "Restaurants"), (attractions_link, "Top Attractions")]:
+                st.markdown(
+                    f"""
+                    <div style="border: 1px solid #ccc; padding: 15px; border-radius: 10px; margin-bottom: 10px; text-align: center; background-color: #f9f9f9;">
+                        <a href="{place}" target="_blank" style="text-decoration: none; color: black;">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/e/ec/Map_pin_icon.svg" width="20" />
+                            <b>click to Find {name} Near Destination</b>
+                        </a>
+                    </div>
+                    """, unsafe_allow_html=True)
             
          
     else:

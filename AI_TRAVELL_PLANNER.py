@@ -1,4 +1,3 @@
-
 import streamlit as st
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -9,13 +8,11 @@ API_KEY = os.getenv("API_KEY")
 
 
 
-
 # Streamlit UI 
 st.set_page_config(page_title="AI-Powered Travel Planner", page_icon="\U0001F30D", layout="centered")
 
-image_url = "https://raw.githubusercontent.com/Abhiram4u/AI-Travel-planner/main/travel%200.png"
-st.image(image_url, use_container_width=True) # homepage image
 
+st.image(r"C:\Users\abhir\OneDrive\Desktop\intership-inno\travel 0.png", use_container_width=True)  # Homepage image
 
 
 st.markdown("<h1 style='text-align: center;'>AI-Powered Travel Planner</h1>", unsafe_allow_html=True)
@@ -41,6 +38,7 @@ def get_navigation_link(source, destination, mode):
 # Google Maps Places API for Hotels & Restaurants
 def get_google_places_link(location, place_type):
     return f"https://www.google.com/maps/search/{place_type}+near+{location}"
+
 
 if st.button("Find Best Travel Options"):
     if source and destination:
@@ -83,7 +81,7 @@ if st.button("Find Best Travel Options"):
             st.write("Here is a recommended itinerary based on your travel preferences:")
             st.write(response)  
 
-            # Navigation Links UI
+             # Navigation Links UI
             st.subheader("Check below for Suggested navigations 📍:")
            
             nav_link = get_navigation_link(source, destination, travel_mode)
@@ -95,9 +93,10 @@ if st.button("Find Best Travel Options"):
                             <b>click here to Navigation to {destination} via road </b>
                         </a>
                     </div>
-                    """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True
+                )
 
-              #Nearby Hotels, Restaurants & Top Attractions 
+              # Nearby Hotels, Restaurants & Top Attractions 
            
             
             hotels_link = get_google_places_link(destination, "hotels")
@@ -114,7 +113,5 @@ if st.button("Find Best Travel Options"):
                         </a>
                     </div>
                     """, unsafe_allow_html=True)
-            
-         
     else:
         st.error("Please enter both source and destination cities.")

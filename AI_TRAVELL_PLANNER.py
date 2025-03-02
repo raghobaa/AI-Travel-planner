@@ -13,7 +13,7 @@ st.set_page_config(page_title="AI-Powered Travel Planner", page_icon="\U0001F30D
 
 
 image_url = "https://raw.githubusercontent.com/Abhiram4u/AI-Travel-planner/main/travel%200.png"
-st.image(image_url, use_column_width=True)
+st.image(image_url, use_container_width=True)
 
 
 

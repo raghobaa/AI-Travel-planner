@@ -1,7 +1,7 @@
-streamlit
-langchain
-langchain-core
-langchain-google-genai
-google-generativeai
-datetime
-
+streamlit>=1.32.0
+langchain-core>=0.1.27
+langchain-google-genai>=0.0.11
+langchain-openai>=0.0.8
+python-dotenv>=1.0.1
+tenacity>=8.2.3
+google-api-core>=2.17.1 

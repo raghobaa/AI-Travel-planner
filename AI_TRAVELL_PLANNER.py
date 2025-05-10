@@ -50,7 +50,7 @@ if "last_request_time" not in st.session_state:
 
 # --- Prompt Template ---
 chat_template = ChatPromptTemplate.from_messages([
-    ("system", "You are an expert travel planner. Provide a detailed itinerary with transport, accommodation (suggest home stays), and food suggestions in a table format for easy understanding. Make it eco-friendly and specify how it's eco-friendly. Consider the budget and notes provided."),
+    ("system", "You are an expert travel planner. Provide a detailed itinerary with transport, accommodation (suggest home stays), and food suggestions in a tabulated format for easy understanding this is important. Make it eco-friendly and specify how it's eco-friendly. Consider the budget and notes provided."),
     ("human", "Plan a {duration}-day trip from {source} to {destination} on {date} with a ${budget} budget. Mode: {mode}. Interests: {interests}. Diet: {diet}. Notes: {notes}")
 ])
 

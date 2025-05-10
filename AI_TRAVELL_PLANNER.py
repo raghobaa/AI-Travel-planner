@@ -1,206 +1,148 @@
-import streamlit as st
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.output_parsers import StrOutputParser
-from datetime import date, timedelta
 import os
-import requests
-from dotenv import load_dotenv
+import time
+import streamlit as st
+from datetime import date
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
+import google.api_core.exceptions
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-# Load environment variables
-load_dotenv()
-API_KEY = os.getenv("API_KEY")
-OPENWEATHER_API = os.getenv("OPENWEATHER_API")
+# --- API Keys (read from environment variables for safety) ---
+GOOGLE_API_KEY = "AIzaSyDv3zVBjzVttDt1lx36M5KO9oopKhG6SDg"
+OPENAI_API_KEY = "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"
 
-# Streamlit configuration
-st.set_page_config(
-    page_title="AI-Powered Travel Planner",
-    page_icon="✈️",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+if not GOOGLE_API_KEY and not OPENAI_API_KEY:
+    st.error("❌ No API keys found. Set GOOGLE_API_KEY or OPENAI_API_KEY as environment variables.")
+    st.stop()
 
-# Custom CSS
-st.markdown("""
-<style>
-    .stSlider > div > div > div > div {
-        background: #4CAF50 !important;
-    }
-    .st-bw {
-        background-color: #f0f2f6;
-    }
-    .travel-card {
-        border-radius: 10px;
-        padding: 1.5rem;
-        margin: 1rem 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        background: white;
-    }
-</style>
-""", unsafe_allow_html=True)
+# --- Streamlit Configuration ---
+st.set_page_config(page_title="AI-Powered Travel Planner", layout="wide")
+st.markdown("<h1 style='text-align: center; color: #2a4a7d;'>AI-Powered Travel Planner</h1>", unsafe_allow_html=True)
 
-# Image header
-st.image("https://raw.githubusercontent.com/Abhiram4u/AI-Travel-planner/main/travel%200.png", 
-         use_column_width=True)
-
-# Main title
-st.markdown("<h1 style='text-align: center; color: #2a4a7d;'>AI-Powered Travel Planner</h1>", 
-           unsafe_allow_html=True)
-
-# User inputs
+# --- User Inputs ---
 with st.expander("✈️ Enter Trip Details", expanded=True):
     col1, col2, col3 = st.columns(3)
-    with col1:
-        source = st.text_input("From:", placeholder="Enter departure city")
-    with col2:
-        destination = st.text_input("To:", placeholder="Enter destination city")
-    with col3:
-        trip_duration = st.slider("Trip Duration (days):", 1, 30, 3)
+    source = col1.text_input("From:", placeholder="Enter departure city")
+    destination = col2.text_input("To:", placeholder="Enter destination city")
+    trip_duration = col3.slider("Trip Duration (days):", 1, 30, 3)
 
-    col4, col5, col6 = st.columns(3)
-    with col4:
-        date_of_travel = st.date_input("Travel Date:", min_value=date.today())
-    with col5:
-        budget = st.slider("Total Budget (₹):", 1000, 100000, 15000, 500)
-    with col6:
-        travel_mode = st.selectbox("Preferred Mode:", ["Any", "Flight", "Train", "Bus", "Cab"])
+    col4, col5, col6 = st.columns(3)  # Added column for budget
+    date_of_travel = col4.date_input("Travel Date:", min_value=date.today())
+    travel_mode = col5.selectbox("Preferred Mode:", ["Any", "Flight", "Train", "Bus", "Cab"])
+    budget = col6.number_input("Budget ($):", min_value=0, value=1000, step=100)
 
     add_prefs = st.checkbox("Add Advanced Preferences")
+    interests = "general"
+    dietary_prefs = "none"
     if add_prefs:
         col7, col8 = st.columns(2)
-        with col7:
-            interests = st.multiselect("Interests:", ["Historical", "Adventure", "Cultural", "Nature", "Food"])
-        with col8:
-            dietary_prefs = st.selectbox("Dietary Preferences:", ["None", "Vegetarian", "Vegan", "Gluten-Free"])
+        interests = col7.multiselect("Interests:", ["Historical", "Adventure", "Cultural", "Nature", "Food"])
+        dietary_prefs = col8.selectbox("Dietary Preferences:", ["None", "Vegetarian", "Vegan", "Gluten-Free"])
+    
+    # Added notes field
+    notes = st.text_area("Additional Notes:", placeholder="Any special requests or preferences?")
 
-# Weather API integration
-def get_weather(city, date):
-    try:
-        url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={OPENWEATHER_API}&units=metric"
-        response = requests.get(url).json()
-        if response['cod'] != 200:
-            return None
-        return {
-            'temp': response['main']['temp'],
-            'description': response['weather'][0]['description'],
-            'icon': response['weather'][0]['icon']
-        }
-    except Exception as e:
-        st.error(f"Weather API error: {str(e)}")
-        return None
+# --- Throttle Requests ---
+if "last_request_time" not in st.session_state:
+    st.session_state.last_request_time = 0
 
-# Cached LLM response
-@st.cache_data(ttl=3600, show_spinner=False)
-def get_travel_plan(_chain, inputs):
-    try:
-        return _chain.invoke(inputs)
-    except Exception as e:
-        st.error(f"AI Service error: {str(e)}")
-        return None
+# --- Prompt Template ---
+chat_template = ChatPromptTemplate.from_messages([
+    ("system", "You are an expert travel planner. Provide a detailed itinerary with transport, accommodation (suggest home stays), and food suggestions in a table format for easy understanding. Make it eco-friendly and specify how it's eco-friendly. Consider the budget and notes provided."),
+    ("human", "Plan a {duration}-day trip from {source} to {destination} on {date} with a ${budget} budget. Mode: {mode}. Interests: {interests}. Diet: {diet}. Notes: {notes}")
+])
 
+# --- Retry Decorator for Gemini ---
+def is_resource_exhausted(e):
+    return isinstance(e, google.api_core.exceptions.ResourceExhausted)
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=2, min=2, max=20),
+    retry=retry_if_exception_type(google.api_core.exceptions.ResourceExhausted)
+)
+def gemini_generate(chain, inputs):
+    return chain.invoke(inputs)
+
+# --- Button Click Logic ---
 if st.button("Generate Travel Plan", use_container_width=True):
-    if source and destination:
-        with st.spinner("🧠 Analyzing best options..."):
-            # Initialize components
-            chat_template = ChatPromptTemplate.from_messages([
-                ("system", """You are an expert travel planner. Create detailed itineraries with:
-                - Transport options (cost, duration, pros/cons)
-                - Accommodation suggestions (3 budget categories)
-                - Daily itinerary with time slots
-                - Budget allocation breakdown
-                - Packing suggestions
-                - Local tips/etiquette
-                - Emergency contacts
-                Format using markdown with emojis and clear sections"""),
-                ("human", """Plan {duration}-day trip from {source} to {destination} starting {date}.
-                Budget: ₹{budget}. Preferred transport: {mode}. Interests: {interests}. Dietary: {diet}.""")
-            ])
-            
-            llm = ChatGoogleGenerativeAI(api_key=API_KEY, model="gemini-1.5-pro-latest")
-            chain = chat_template | llm | StrOutputParser()
-            
-            # Get weather data
-            weather = get_weather(destination, date_of_travel)
-            weather_info = f"{weather['description'].title()} ({weather['temp']}°C)" if weather else "unavailable"
-            
-            # Generate plan
-            response = get_travel_plan(chain, {
-                "source": source,
-                "destination": destination,
-                "date": date_of_travel.strftime('%d %b %Y'),
-                "duration": trip_duration,
-                "budget": budget,
-                "mode": travel_mode,
-                "interests": interests if add_prefs else "general",
-                "diet": dietary_prefs if add_prefs else "none"
-            })
-            
-        if response:
-            # Display results
-            st.subheader(f"🗺️ Your {trip_duration}-Day {destination} Itinerary")
-            
-            # Weather card
-            if weather:
-                st.markdown(f"""
-                <div class="travel-card">
-                    <h4>🌤️ Destination Weather</h4>
-                    <p>Expect {weather_info} during your stay</p>
-                    <img src="http://openweathermap.org/img/wn/{weather['icon']}@2x.png">
-                </div>
-                """, unsafe_allow_html=True)
-            
-            # AI Response
-            with st.expander("📝 Full Travel Plan", expanded=True):
-                st.markdown(response)
-            
-            # Additional Features
-            with st.container():
-                st.subheader("🔗 Helpful Resources")
-                cols = st.columns(4)
-                
-                # Navigation
-                with cols[0]:
-                    st.markdown(f"""
-                    <div class="travel-card">
-                        <h4>🗺️ Navigation</h4>
-                        <a href="{get_navigation_link(source, destination, travel_mode)}" target="_blank">
-                            Directions to {destination}
-                        </a>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                # Local Services
-                services = {
-                    "Hotels": "hotels",
-                    "Restaurants": "restaurants",
-                    "Attractions": "tourist+attractions",
-                    "Hospitals": "hospitals"
-                }
-                for col, (service, query) in zip(cols[1:], services.items()):
-                    with col:
-                        st.markdown(f"""
-                        <div class="travel-card">
-                            <h4>🏨 {service}</h4>
-                            <a href="{get_google_places_link(destination, query)}" target="_blank">
-                                Find {service} in {destination}
-                            </a>
-                        </div>
-                        """, unsafe_allow_html=True)
-            
-            # Export Options
-            st.download_button(
-                label="📥 Download PDF Itinerary",
-                data=response.encode('utf-8'),
-                file_name=f"{destination}_itinerary.md",
-                mime="text/markdown"
-            )
+    now = time.time()
+    if now - st.session_state.last_request_time < 30:
+        st.warning("⏳ Please wait a bit before requesting again.")
+    elif not source or not destination:
+        st.warning("⚠️ Please fill in all required fields.")
     else:
-        st.warning("Please fill in all required fields")
+        st.session_state.last_request_time = now
 
-# Helper functions
-def get_navigation_link(source, destination, mode):
-    mode_mapping = {"Flight": "d", "Train": "r", "Bus": "b", "Cab": "d"}
-    return f"https://www.google.com/maps/dir/?api=1&origin={source}&destination={destination}"
+        with st.spinner("🧠 Generating your perfect itinerary..."):
+            try:
+                inputs = {
+                    "source": source,
+                    "destination": destination,
+                    "date": date_of_travel.strftime('%d %b %Y'),
+                    "duration": trip_duration,
+                    "mode": travel_mode,
+                    "budget": budget,
+                    "interests": ", ".join(interests) if isinstance(interests, list) else interests,
+                    "diet": dietary_prefs,
+                    "notes": notes
+                }
 
-def get_google_places_link(location, place_type):
-    return f"https://www.google.com/maps/search/{place_type}+near+{location}"
+                response = None
+
+                # --- Try Gemini ---
+                if GOOGLE_API_KEY:
+                    try:
+                        gemini_llm = ChatGoogleGenerativeAI(api_key=GOOGLE_API_KEY, model="gemini-2.0-flash")
+                        chain = chat_template | gemini_llm | StrOutputParser()
+                        response = gemini_generate(chain, inputs)
+                    except google.api_core.exceptions.ResourceExhausted as e:
+                        st.warning("⚠️ Gemini quota exceeded or rate-limited. Falling back to OpenAI...")
+                        response = None
+                    except Exception as e:
+                        st.warning(f"⚠️ Gemini error: {str(e)}. Trying OpenAI...")
+                        response = None
+
+                # --- Fallback: OpenAI ---
+                if not response and OPENAI_API_KEY:
+                    try:
+                        openai_llm = ChatOpenAI(api_key=OPENAI_API_KEY, model="gpt-3.5-turbo")
+                        chain = chat_template | openai_llm | StrOutputParser()
+                        response = chain.invoke(inputs)
+                    except Exception as e:
+                        st.error(f"❌ OpenAI error: {str(e)}")
+                        response = None
+
+                # --- Show Result or Error ---
+                if response:
+                    st.subheader(f"🗺️ Your {trip_duration}-Day {destination} Itinerary")
+                    st.markdown(response, unsafe_allow_html=True)
+
+                    itinerary_markdown = f"""
+# 🌍 Travel Itinerary for {destination}
+### ✈️ Trip Details:
+- **From:** {source}
+- **To:** {destination}
+- **Date:** {date_of_travel.strftime('%d %b %Y')}
+- **Duration:** {trip_duration} days
+- **Budget:** ${budget}
+- **Preferred Mode:** {travel_mode}
+- **Interests:** {', '.join(interests) if add_prefs else 'General'}
+- **Dietary Preferences:** {dietary_prefs if add_prefs else 'None'}
+- **Additional Notes:** {notes if notes else 'None'}
+
+## 📌 Itinerary Plan:
+{response}
+"""
+                    st.download_button("📥 Download Itinerary", data=itinerary_markdown.encode('utf-8'),
+                                       file_name=f"{destination}_itinerary.md", mime="text/markdown")
+                else:
+                    st.error("❌ No response received from either provider. Please try again later or check your API quotas.")
+
+            except Exception as e:
+                st.error(f"⚠️ An unexpected error occurred: {str(e)}")
+
+# --- Footer ---
+st.markdown("<hr><center><small>Powered by Gemini & OpenAI | Built with ❤️ using Streamlit</small></center>", unsafe_allow_html=True)

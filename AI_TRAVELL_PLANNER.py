@@ -144,5 +144,3 @@ if st.button("Generate Travel Plan", use_container_width=True):
             except Exception as e:
                 st.error(f"⚠️ An unexpected error occurred: {str(e)}")
 
-# --- Footer ---
-st.markdown("<hr><center><small>Powered by Gemini & OpenAI | Built with ❤️ using Streamlit</small></center>", unsafe_allow_html=True)
